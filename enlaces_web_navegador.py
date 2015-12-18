@@ -33,9 +33,7 @@ if len(sys.argv) > 1:
 	
 	for l in total_links:
 		link = l[0]
-		print link
-		print link
-		if (len(link[0]) > 1) and (link[0] and link[1] == "/"):
+		if (len(link) > 1) and (link[0] and link[1] == "/"):
 			links.append(["http:"+link,l[1]])
 		elif link[0] == "/":
 			links.append([web+link,l[1]])
