@@ -26,6 +26,10 @@ def enlaces_web(web):
 if len(sys.argv) > 1:
 
 	web = sys.argv[1]
+	
+	if not re.findall("^https?://",web):
+		web = "http://"+web
+	
 	total_links = enlaces_web(web)
 	links = []
 	
