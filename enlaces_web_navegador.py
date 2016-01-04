@@ -58,12 +58,15 @@ if len(sys.argv) > 1:
 	html_document.write(tags_apertura)
 	html_document.write(tags_style)
 	html_document.write(tags_body)
+	
 	for link in links:
 		html_document.write('\t<tr><td bgcolor="'+("lightgreen" if link[1]=="src" else "lightblue")+
 					'">'+link[1]+"</td><td><a href="+'"'+link[0]+'">'+
 					(link[0] if (len(link[0]) < 100) else link[0][:150]+"...")+"</a></td></tr>\n")
 	html_document.write("</table>")
 	html_document.write(tags_final)
+	
+	html_document.close()
 		
 	webbrowser.open("datos_enlaces.html")
 	
