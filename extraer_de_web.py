@@ -4,12 +4,13 @@ import os
 import re
 import urllib2
 import sys
-import locale
 import webbrowser
 import itertools
 
 webs_mesmo_dominio = []
 webs_mesmo_dominio_extraidas = []
+
+tipos_web_a_procesar = ["html"]
 
 vaciado = False
 #DEVOLVE TODOS OS ENLACES DE UNHA WEB
@@ -18,68 +19,84 @@ def enlaces_web(web,busqueda,tipo,all):
 	global webs_mesmo_dominio_extraidas
 	global vaciado
 	#TEXTO DE TODA A WEB
-	print "::web:\t"+web
+	print "|||WEB:\t"+web
 	try:
-		web_code = urllib2.urlopen(web).read()
-		web_code = web_code.decode(sys.stdin.encoding or locale.getpreferredencoding(True))
+		url_info = urllib2.urlopen(web, timeout=5)
+		tipo_web = url_info.info()["Content-Type"]
+		print "::TIPO:\t"+tipo_web
+		web_code = url_info.read()
 		web_code = web_code.replace("'",'"')
 	except:
 		print "ERROR - Imposible conectar"
 		print
 		return []
-	#DIVERSA FORMA DE PROCESAR SEGUN SE BUSQUE UNHA WEB OU TODAS AS DO DOMINIO
-	if all in ["1","True","total","t"]:
-		expresion_regular = '(href)="(\S+)"|(src)="(\S+)"'
-		pre_links = re.findall(expresion_regular,web_code)
-		pre_links = [[x[0]+x[2],x[1]+x[3]] for x in pre_links]
-		#CORREXIMOS LINKS
-		links_correxidos = correxir_links(web,pre_links)
-		#WEBS DO MESMO DOMINIO
-		if not vaciado:
-			if all in ["total","t"]:
-				webs_dominio = next_in_web(web,links_correxidos,1)
-			else:
-				webs_dominio = next_in_web(web,links_correxidos,0)
-			webs_mesmo_dominio = webs_mesmo_dominio + [x for x in webs_dominio 
-										if x not in webs_mesmo_dominio_extraidas]
-			webs_mesmo_dominio = list(set(webs_mesmo_dominio))
-		if webs_mesmo_dominio:
-			print "## Webs no dominio por procesar: "+str(len(webs_mesmo_dominio))
-			print
-		#FILTRAMOS AGORA POR TIPO
-		if tipo in ["href","src"]:
-			links_correxidos = [x for x in links_correxidos if x[0] == tipo]
-	else:
-		if tipo == "href":
-			expresion_regular = '(href)="(\S+)"'
-			pre_links = re.findall(expresion_regular,web_code)
-		elif tipo == "src":
-			expresion_regular = '(src)="(\S+)"'
-			pre_links = re.findall(expresion_regular,web_code)
-		else:
+	procesar = False
+	for tipo in tipos_web_a_procesar:
+		if tipo in tipo_web:
+			procesar = True
+	if procesar:
+		#DIVERSA FORMA DE PROCESAR SEGUN SE BUSQUE UNHA WEB OU TODAS AS DO DOMINIO
+		if all in ["1","True","total","t"]:
 			expresion_regular = '(href)="(\S+)"|(src)="(\S+)"'
 			pre_links = re.findall(expresion_regular,web_code)
 			pre_links = [[x[0]+x[2],x[1]+x[3]] for x in pre_links]
-		#CORREXIMOS LINKS
-		links_correxidos = correxir_links(web,pre_links)
-	#FILTRAMOS POR BUSQUEDA
-	links_salida = []
-	if busqueda and not busqueda in ["","0","None"]:
-		for l in links_correxidos:
-			if re.findall(busqueda,l[1]):
-				links_salida.append(l)
+			#CORREXIMOS LINKS
+			links_correxidos = correxir_links(web,pre_links)
+			#WEBS DO MESMO DOMINIO
+			if not vaciado:
+				if all in ["total","t"]:
+					webs_dominio = next_in_web(web,links_correxidos,1)
+				else:
+					webs_dominio = next_in_web(web,links_correxidos,0)
+				webs_mesmo_dominio = webs_mesmo_dominio + [x for x in webs_dominio 
+											if x not in webs_mesmo_dominio_extraidas]
+				webs_mesmo_dominio = list(set(webs_mesmo_dominio))
+			if webs_mesmo_dominio:
+				print "## Procesada. Restantes: "+str(len(webs_mesmo_dominio))
+				print
+			else:
+				print "## Procesada."
+			#FILTRAMOS AGORA POR TIPO
+			if tipo in ["href","src"]:
+				links_correxidos = [x for x in links_correxidos if x[0] == tipo]
+		else:
+			if tipo == "href":
+				expresion_regular = '(href)="(\S+)"'
+				pre_links = re.findall(expresion_regular,web_code)
+			elif tipo == "src":
+				expresion_regular = '(src)="(\S+)"'
+				pre_links = re.findall(expresion_regular,web_code)
+			else:
+				expresion_regular = '(href)="(\S+)"|(src)="(\S+)"'
+				pre_links = re.findall(expresion_regular,web_code)
+				pre_links = [[x[0]+x[2],x[1]+x[3]] for x in pre_links]
+			#CORREXIMOS LINKS
+			links_correxidos = correxir_links(web,pre_links)
+		#FILTRAMOS POR BUSQUEDA
+		links_salida = []
+		if busqueda and not busqueda in ["","0","None"]:
+			for l in links_correxidos:
+				if re.findall(busqueda,l[1]):
+					links_salida.append(l)
+		else:
+			links_salida = links_correxidos
+		#ELIMINAMOS DUPLICADOS
+		links_salida.sort()
+		links_salida = list(link for link,_ in itertools.groupby(links_salida))
+		#DEVOLVEMOS A LISTA DE LINKS
+		return links_salida
 	else:
-		links_salida = links_correxidos
-	#ELIMINAMOS DUPLICADOS
-	links_salida.sort()
-	links_salida = list(link for link,_ in itertools.groupby(links_salida))
-	#DEVOLVEMOS A LISTA DE LINKS
-	return links_salida
+		print ("## Este link non corresponde a "+str(tipos_web_a_procesar)+"."+
+				" Non se procesa. Restantes: "+str(len(webs_mesmo_dominio)))
+		print
+		return []
 		
 #CREA UNHA WEB CON UNHA TABOA DONDE SE REPRESENTAN OS ENLACES RESULTANTES
 def crear_web_datos(web,links):
-	html_document = open("datos_enlaces.html","w")
-	tags_apertura = "<html>\n<head>\n<title>Datos_Enlaces</title>\n</head>\n"
+	nome_web = web.split("/")[2].replace(":","").replace("?","")
+	nome_html = "datos_enlaces_"+nome_web+".html"
+	html_document = open(nome_html,"w")
+	tags_apertura = "<html>\n<head>\n<meta charset="+"UTF-8"+">\n<title>Datos_Enlaces</title>\n</head>\n"
 	tags_style = "<style>\ntable {border-collapse: collapse;}\ntd {padding: 5px;}\n</style>\n"
 	tags_body = "<body>\n<h2>"+(web if (len(web) < 100) else web[:150]+"...")+"</h2>\n<table border=1>\n"
 	tags_final = "</body>\n</html>"
@@ -97,7 +114,7 @@ def crear_web_datos(web,links):
 	
 	html_document.close()
 		
-	webbrowser.open("datos_enlaces.html")
+	webbrowser.open(nome_html)
 	
 #CORREXIR LINKS
 def correxir_links(web,links):
@@ -125,6 +142,10 @@ def descargar(dir,links):
 			arquivo = file(dir+"/"+name_file,"wb")
 			arquivo.write(file_url.read())
 			arquivo.close()
+			try:
+				link = link.decode("utf8")
+			except:
+				pass
 			print str(total)+" - "+"Descargado "+link
 		except:
 			print str(total)+" - "+"Error - Non foi posible descargar: "+link
@@ -137,7 +158,7 @@ def next_in_web(web,links,mode):
 	web = "/".join(web)
 	next_in_webs = []
 	if mode:
-		expre_regular = "^"+web+".+|^"+web+".+"+".html$"
+		expre_regular = "^"+web+".+"
 	else:
 		expre_regular = "^"+web+".+"+".html$"
 	for l in links:
@@ -182,7 +203,7 @@ def leer_argumentos(args):
 		print "\t'numero' -> despois de 'numero' webs xa non fai busquedas"
 		return 0
 	elif len(args) > 2:
-		args_enlaces_web = args[2:] + [None for x in range(6-len(args))]
+		args_enlaces_web = args[2:] + [0 for x in range(7-len(args))]
 		web = args_enlaces_web[0]
 		if not re.findall("^https?://",web):
 			web = "http://"+web
@@ -205,7 +226,11 @@ def leer_argumentos(args):
 		busqueda = raw_input("busqueda: ")
 		etiqueta = raw_input("etiqueta: ")
 		all = raw_input("all: ")
-		max_saltos = int(raw_input("maximo de saltos: "))
+		max_saltos = raw_input("maximo de saltos: ")
+		try:
+			max_saltos = int(max_saltos)
+		except:
+			max_saltos = 1
 		args_enlaces_web = [web,busqueda,etiqueta,all]
 		web = args_enlaces_web[0]
 		if not re.findall("^https?://",web):
@@ -244,16 +269,26 @@ def leer_argumentos(args):
 	print "Numero de enlaces totales: "+str(len(enlaces))
 	print "+"*20
 	print
+	############################
 	#TIPO DE SALIDA
+	############################
+	#TERMINAL
 	if tipo_salida in ["0","terminal","consola"]:
 		total = len(enlaces)
 		d_total = len(str(total))
 		for l in enlaces:
 			ceros = d_total-len(str(total))
-			print "0"*ceros+str(total)+" - "+l[0]+"\t"+l[1]
+			string_salida = "0"*ceros+str(total)+" - "+l[0]+"\t"+l[1]
+			try:
+				string_salida = string_salida.decode("utf8")
+			except:
+				pass
+			print string_salida
 			total -= 1
+	#WEB
 	elif tipo_salida in ["1","web","html"]:
 		crear_web_datos(web,enlaces)
+	#DESCARGA
 	elif tipo_salida in ["2","descarga","download"]:
 		dir_name = web+"-".join(str(x) for x in args_enlaces_web[1:4])+str(max_saltos)
 		dir_name = dir_name.replace("/","").replace(":","").replace("?","")
