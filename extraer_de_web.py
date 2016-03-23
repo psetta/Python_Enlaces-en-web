@@ -26,7 +26,7 @@ def enlaces_web(web,busqueda,tipo,all):
 		print
 		return []
 	#DIVERSA FORMA DE PROCESAR SEGUN SE BUSQUE UNHA WEB OU TODAS AS DO DOMINIO
-	if all in ["1","True","total"]:
+	if all in ["1","True","total","t"]:
 		expresion_regular = '(href)="(\S+)"|(src)="(\S+)"'
 		pre_links = re.findall(expresion_regular,web_code)
 		pre_links = [[x[0]+x[2],x[1]+x[3]] for x in pre_links]
@@ -34,7 +34,7 @@ def enlaces_web(web,busqueda,tipo,all):
 		links_correxidos = correxir_links(web,pre_links)
 		#WEBS DO MESMO DOMINIO
 		if not vaciado:
-			if all == "total":
+			if all in ["total","t"]:
 				webs_dominio = next_in_web(web,links_correxidos,1)
 			else:
 				webs_dominio = next_in_web(web,links_correxidos,0)
@@ -135,7 +135,7 @@ def next_in_web(web,links,mode):
 	web = "/".join(web)
 	next_in_webs = []
 	if mode:
-		expre_regular = "^"+web+".+"
+		expre_regular = "^"+web+".+|^"+web+".+"+".html$"
 	else:
 		expre_regular = "^"+web+".+"+".html$"
 	for l in links:
@@ -150,7 +150,34 @@ max_saltos = 0
 def leer_argumentos(args):
 	global max_saltos
 	global vaciado
-	if len(args) > 2:
+	if len(args) > 1 and args[1] in ["-h","-help","/?","h","help"]:
+		print ">> salida:"
+		print "\t0 -> terminal"
+		print "\t1 -> web"
+		print "\t2 -> descarga"
+		print
+		print ">> web:"
+		print "\tlink da web da que queremos extraer datos"
+		print
+		print ">> busqueda:"
+		print "\t0 -> Non fai ningunha busqueda"
+		print "\texpresion regular que queremos buscar. Exemplo: .pdf$"
+		print
+		print ">> etiqueta:"
+		print "\t0 -> devolve todos os links"
+		print "\thref -> devolve links coa etiqueta href"
+		print "\tscr -> devolve links coa etiqueta scr"
+		print
+		print ">> all?:"
+		print "\t0 -> solo busca na web indicada"
+		print "\t1 -> busca na web indicada e nos enlaces desta que rematen en .html"
+		print "\tt -> busca na web indicada e en todos os enlaces desta"
+		print
+		print ">> maximo de saltos: (solo funciona se 'all?' esta activado)"
+		print "\t0 -> sen limite"
+		print "\t'numero' -> despois de 'numero' webs xa non fai busquedas"
+		return 0
+	elif len(args) > 2:
 		args_enlaces_web = args[2:] + [None for x in range(6-len(args))]
 		web = args_enlaces_web[0]
 		if not re.findall("^https?://",web):
@@ -158,14 +185,17 @@ def leer_argumentos(args):
 			args_enlaces_web[0] = web
 		#REPRESENTAR ARGUMENTOS
 		tipo_salida = args[1]
-		print "salida:\t"+str(tipo_salida)
+		print "salida:\t\t"+str(tipo_salida)
 		print "web:\t\t"+str(args_enlaces_web[0])
 		print "busqueda:\t"+str(args_enlaces_web[1])
 		print "etiqueta:\t"+str(args_enlaces_web[2])
-		print "all:\t\t"+str(args_enlaces_web[3])
+		print "all?:\t\t"+str(args_enlaces_web[3])
+		print "n de saltos:\t"+str(args_enlaces_web[4])
 		print
 	else:
 		#PEDIR ARGUMENTOS POR CONSOLA
+		print "Para axuda: -h ou -help"
+		print
 		tipo_salida = raw_input("salida: ")
 		web = raw_input("web: ")
 		busqueda = raw_input("busqueda: ")
@@ -179,15 +209,20 @@ def leer_argumentos(args):
 			args_enlaces_web[0] = web
 		print
 	#SI QUEREMOS TODAS AS WEBS DO DOMINIO
-	if args_enlaces_web[3] in ["1","True","total"]:
+	if args_enlaces_web > 4:
+		max_saltos = int(args_enlaces_web[4])
+		args_enlaces_web = args_enlaces_web[:4]
+	if args_enlaces_web[3] in ["1","True","total", "t"]:
 		webs_mesmo_dominio.append(web)
 		enlaces = []
 		while webs_mesmo_dominio:
 			web_a_extraer = webs_mesmo_dominio[0]
 			args_enlaces_web[0] = web_a_extraer
 			webs_mesmo_dominio_extraidas.append(web_a_extraer)
-			if max_saltos and len(webs_mesmo_dominio) > max_saltos:
+			if not vaciado and max_saltos and len(webs_mesmo_dominio) > max_saltos:
 				vaciado = True
+				print "== Limite de saltos superado =="
+				print
 			del webs_mesmo_dominio[0]
 			enlaces = enlaces + enlaces_web(*args_enlaces_web)
 	#SOLO A WEB REQUERIDA
@@ -221,6 +256,7 @@ def leer_argumentos(args):
 		if not os.path.exists(dir_name):
 			os.mkdir(dir_name)
 		descargar(dir_name,enlaces)
+	print
 	raw_input("Rematado.")
 		
 def main():
