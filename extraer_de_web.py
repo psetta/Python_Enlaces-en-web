@@ -17,14 +17,13 @@ def enlaces_web(web,busqueda,tipo,all):
 	global webs_mesmo_dominio_extraidas
 	global vaciado
 	#TEXTO DE TODA A WEB
-	print
 	print "::web:\t"+web
-	print
 	try:
 		web_code = urllib2.urlopen(web).read()
 		web_code = web_code.replace("'",'"')
 	except:
 		print "ERROR - Imposible conectar"
+		print
 		return []
 	#DIVERSA FORMA DE PROCESAR SEGUN SE BUSQUE UNHA WEB OU TODAS AS DO DOMINIO
 	if all in ["1","True","total"]:
@@ -43,11 +42,7 @@ def enlaces_web(web,busqueda,tipo,all):
 										if x not in webs_mesmo_dominio_extraidas]
 			webs_mesmo_dominio = list(set(webs_mesmo_dominio))
 		if webs_mesmo_dominio:
-			print "#"*20
-			print ":: Webs no dominio: "+str(len(webs_mesmo_dominio))
-			for w in webs_mesmo_dominio:
-				print w
-			print "#"*20
+			print "## Webs no dominio por procesar: "+str(len(webs_mesmo_dominio))
 			print
 		#FILTRAMOS AGORA POR TIPO
 		if tipo in ["href","src"]:
@@ -226,6 +221,7 @@ def leer_argumentos(args):
 		if not os.path.exists(dir_name):
 			os.mkdir(dir_name)
 		descargar(dir_name,enlaces)
+	raw_input("Rematado.")
 		
 def main():
 	leer_argumentos(sys.argv)
