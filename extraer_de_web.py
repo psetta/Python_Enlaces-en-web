@@ -4,6 +4,7 @@ import os
 import re
 import urllib2
 import sys
+import locale
 import webbrowser
 import itertools
 
@@ -20,6 +21,7 @@ def enlaces_web(web,busqueda,tipo,all):
 	print "::web:\t"+web
 	try:
 		web_code = urllib2.urlopen(web).read()
+		web_code = web_code.decode(sys.stdin.encoding or locale.getpreferredencoding(True))
 		web_code = web_code.replace("'",'"')
 	except:
 		print "ERROR - Imposible conectar"
@@ -168,7 +170,7 @@ def leer_argumentos(args):
 		print ">> etiqueta:"
 		print "\t0 -> devolve todos os links"
 		print "\thref -> devolve links coa etiqueta href"
-		print "\tscr -> devolve links coa etiqueta scr"
+		print "\tsrc -> devolve links coa etiqueta src"
 		print
 		print ">> all?:"
 		print "\t0 -> solo busca na web indicada"
@@ -211,7 +213,7 @@ def leer_argumentos(args):
 			args_enlaces_web[0] = web
 		print
 	#SI QUEREMOS TODAS AS WEBS DO DOMINIO
-	if args_enlaces_web > 4:
+	if len(args_enlaces_web) > 4:
 		max_saltos = int(args_enlaces_web[4])
 		args_enlaces_web = args_enlaces_web[:4]
 	if args_enlaces_web[3] in ["1","True","total", "t"]:
