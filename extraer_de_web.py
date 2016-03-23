@@ -151,6 +151,8 @@ def leer_argumentos(args):
 	global max_saltos
 	global vaciado
 	if len(args) > 1 and args[1] in ["-h","-help","/?","h","help"]:
+		print "::AXUDA"
+		print
 		print ">> salida:"
 		print "\t0 -> terminal"
 		print "\t1 -> web"
