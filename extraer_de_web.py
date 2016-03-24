@@ -7,10 +7,62 @@ import sys
 import webbrowser
 import itertools
 
-webs_mesmo_dominio = []
-webs_mesmo_dominio_extraidas = []
+#OPCIONS##############################
 
 tipos_web_a_procesar = ["html"]
+multiproceso = False
+fios_maximos = 50
+urlopen_timeout = 5
+
+######################################
+
+#SE O MULTIPROCESO ESTA HABILITADO
+if multiproceso:
+
+	import threading
+	
+	semaforo_fios = threading.BoundedSemaphore(fios_maximos)
+	
+	class Fio_descarga(threading.Thread):
+		def __init__(self,link,dir):
+			super(Fio_descarga, self).__init__()
+			self.link=link
+			self.dir = dir
+		def run(self):
+			semaforo_fios.acquire()
+			link_fio = self.link
+			dir_fio = self.dir
+			try:
+				file_url = urllib2.urlopen(link_fio)
+				name_file = link_fio.replace("/","").replace(":","").replace("?","")
+				arquivo = file(dir_fio+"/"+name_file,"wb")
+				arquivo.write(file_url.read())
+				arquivo.close()
+				try:
+					self.link = link_fio.decode("utf8")
+				except:
+					pass
+				print "Descargado "+link_fio
+			except:	
+				print "Error - Non foi posible descargar: "+link_fio
+			semaforo_fios.release()
+			
+	class Fio_procesar_web(threading.Thread):
+		def __init__(self):
+			super(Fio_procesar_web, self).__init__()
+		def run(self):
+			semaforo_fios.acquire()
+			try:
+				#enlaces_web(web,busqueda,tipo,all)
+				None
+			except:
+				None
+			semaforo_fios.release()
+			
+####
+
+webs_mesmo_dominio = []
+webs_mesmo_dominio_extraidas = []
 
 vaciado = False
 #DEVOLVE TODOS OS ENLACES DE UNHA WEB
@@ -21,7 +73,7 @@ def enlaces_web(web,busqueda,tipo,all):
 	#TEXTO DE TODA A WEB
 	print "|||WEB:\t"+web
 	try:
-		url_info = urllib2.urlopen(web, timeout=5)
+		url_info = urllib2.urlopen(web, timeout=urlopen_timeout)
 		tipo_web = url_info.info()["Content-Type"]
 		print "::TIPO:\t"+tipo_web
 		web_code = url_info.read()
@@ -133,23 +185,33 @@ def correxir_links(web,links):
 	
 #DESCARGA O CONTIDO DOS ENLACES
 def descargar(dir,links):
-	total = len(links)
-	for l in links:
-		link = l[1]
-		try:
-			file_url = urllib2.urlopen(link)
-			name_file = link.replace("/","").replace(":","").replace("?","")
-			arquivo = file(dir+"/"+name_file,"wb")
-			arquivo.write(file_url.read())
-			arquivo.close()
+	if multiproceso:
+		Procesos_descarga = []
+		#EXECUTAMOS OS PROCESOS
+		for l in links:
+			link = l[1]
+			Procesos_descarga.append(Fio_descarga(link,dir))
+			Procesos_descarga[-1].start()
+		for fio in Procesos_descarga:
+			fio.join()
+	else:
+		total = len(links)
+		for l in links:
+			link = l[1]
 			try:
-				link = link.decode("utf8")
+				file_url = urllib2.urlopen(link)
+				name_file = link.replace("/","").replace(":","").replace("?","")
+				arquivo = file(dir+"/"+name_file,"wb")
+				arquivo.write(file_url.read())
+				arquivo.close()
+				try:
+					link = link.decode("utf8")
+				except:
+					pass
+				print str(total)+" - "+"Descargado "+link
 			except:
-				pass
-			print str(total)+" - "+"Descargado "+link
-		except:
-			print str(total)+" - "+"Error - Non foi posible descargar: "+link
-		total -= 1
+				print str(total)+" - "+"Error - Non foi posible descargar: "+link
+			total -= 1
 			
 #VER WEBS DENTRO DO MESMO DOMINIO
 def next_in_web(web,links,mode):
@@ -169,10 +231,12 @@ def next_in_web(web,links,mode):
 	return next_in_webs
 
 max_saltos = 0
+enlaces = []
 #LEE OS ARGUMENTOS QUE SE LLE PASA AO SCRIPT E EJECUTA AS FUNCIONS CORRESPONDENTES
 def leer_argumentos(args):
 	global max_saltos
 	global vaciado
+	global enlaces
 	if len(args) > 1 and args[1] in ["-h","-help","/?","h","help"]:
 		print "::AXUDA"
 		print
@@ -193,7 +257,7 @@ def leer_argumentos(args):
 		print "\thref -> devolve links coa etiqueta href"
 		print "\tsrc -> devolve links coa etiqueta src"
 		print
-		print ">> all?:"
+		print ">> recursiva:"
 		print "\t0 -> solo busca na web indicada"
 		print "\t1 -> busca na web indicada e nos enlaces desta que rematen en .html"
 		print "\tt -> busca na web indicada e en todos os enlaces desta"
@@ -214,7 +278,7 @@ def leer_argumentos(args):
 		print "web:\t\t"+str(args_enlaces_web[0])
 		print "busqueda:\t"+str(args_enlaces_web[1])
 		print "etiqueta:\t"+str(args_enlaces_web[2])
-		print "all?:\t\t"+str(args_enlaces_web[3])
+		print "recursiva:\t"+str(args_enlaces_web[3])
 		print "n de saltos:\t"+str(args_enlaces_web[4])
 		print
 	else:
@@ -225,7 +289,7 @@ def leer_argumentos(args):
 		web = raw_input("web: ")
 		busqueda = raw_input("busqueda: ")
 		etiqueta = raw_input("etiqueta: ")
-		all = raw_input("all: ")
+		all = raw_input("recursiva: ")
 		max_saltos = raw_input("maximo de saltos: ")
 		try:
 			max_saltos = int(max_saltos)
@@ -243,7 +307,6 @@ def leer_argumentos(args):
 		args_enlaces_web = args_enlaces_web[:4]
 	if args_enlaces_web[3] in ["1","True","total", "t"]:
 		webs_mesmo_dominio.append(web)
-		enlaces = []
 		while webs_mesmo_dominio:
 			web_a_extraer = webs_mesmo_dominio[0]
 			args_enlaces_web[0] = web_a_extraer
