@@ -11,7 +11,7 @@ import itertools
 
 tipos_web_a_procesar = ["html"]
 multiproceso = True
-fios_maximos = 10
+fios_maximos = 20
 urlopen_timeout = 20
 
 ######################################
@@ -207,7 +207,7 @@ def descargar(dir,links):
 			try:
 				Procesos_descarga[-1].start()
 			except:
-				None
+				del Procesos_descarga[-1]
 		for fio in Procesos_descarga:
 			fio.join()
 			
