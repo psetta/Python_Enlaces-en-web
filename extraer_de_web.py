@@ -352,7 +352,10 @@ def leer_argumentos(args):
 					webs_mesmo_dominio_extraidas.append(web_a_extraer)
 					del webs_mesmo_dominio[0]
 					Procesos_procesar_web.append(Fio_procesar_web(args_enlaces_web))
-					Procesos_procesar_web[-1].start()
+					try:
+						Procesos_procesar_web[-1].start()
+					except:
+						del Procesos_procesar_web[-1]
 				for fio in Procesos_procesar_web:
 					fio.join()
 				for fio in Procesos_procesar_web:

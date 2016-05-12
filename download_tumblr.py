@@ -22,7 +22,7 @@ def into_url():
 			print "Insert a Tumblr URL"
 			return None
 		if not re.findall("^http://",url):
-			url += "http://"
+			url = "http://"+url
 		return url
 	else:
 		print "Insert a Tumblr URL"
@@ -59,9 +59,15 @@ def download(archive,dir):
 	dir_and_file_name = dir+"/"+name_file+extension
 	file_number = 2
 	if os.path.isfile(dir_and_file_name):
-		while os.path.isfile(dir+"/"+name_file+"_"+str(file_number)+extension):
+		name_file0 = name_file.split(".")[0:-1]
+		extension_file = name_file.split(".")[-1]
+		if name_file0 and extension_file:
+			total_name = dir+"/"+name_file0+"_"+str(file_number)+"."+extension_file
+		elif extension:
+			total_name = dir+"/"+name_file+"_"+str(file_number)+"."+extension
+		while os.path.isfile(total_name):
 			file_number += 1
-		dir_and_file_name = dir+"/"+name_file+"_"+str(file_number)+extension
+		dir_and_file_name = total_name
 	file_dw = file(dir_and_file_name,"wb")
 	#ARCHIVE SIZE
 	size_bytes = float(archive_info["Content-Length"])
@@ -119,7 +125,10 @@ def download_archives(archives):
 		number_archives_total = len(archives)
 		number_archives = 1
 		for archive in archives:
-			download(archive,dir_name)
+			try:
+				download(archive,dir_name)
+			except:
+				None
 			number_archives += 1
 	else:
 		print "\t- No archives"
@@ -155,9 +164,26 @@ def extract_archives_url_to_html(html):
 						None
 			except:
 				None
+		#LI CLASS=POST
+		all_li_post = web_soup.find_all("li", class_="post")
+		for post in all_li_post:
+			#IMG
+			try:
+				if post.find_all("img"):
+					find_imgs = post.find_all("img")
+					for img in find_imgs:
+						all_img.append(img)
+			except:
+				None
+			#IFRAME
+			try:
+				if post.iframe:
+					all_iframe.append(post.iframe)
+			except:
+				None
 		#DIV CLASS=POSTS
-		all_post = web_soup.find_all("div", class_="posts")
-		for post in all_post:
+		all_div_post = web_soup.find_all("div", class_="posts")
+		for post in all_div_post:
 			#IMG
 			try:
 				if post.find_all("img"):

@@ -12,6 +12,7 @@ urlopen_timeout = 20
 def replace_code(url):
 	replaced_url = url.replace("%3A",":").replace("%2F","/").replace("%3F","?")
 	replaced_url = replaced_url.replace("%3D","=").replace("%26","&").replace("&amp","")
+	replaced_url = replaced_url.replace("%252F","//").replace("%252C",",")
 	return replaced_url
 
 def descargar(url):
@@ -66,7 +67,8 @@ def descargar_flvurl(url):
 				#print "ERROR - Imposible descargar "+link
 				None
 
-if len(sys.argv) > 1:
-	descargar_flvurl(sys.argv[1])
-else:
-	print("Introducir url como argumento")
+if __name__ == "__main__":
+	if len(sys.argv) > 1:
+		descargar_flvurl(sys.argv[1])
+	else:
+		print("Introducir url como argumento")
