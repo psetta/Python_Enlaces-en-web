@@ -182,8 +182,42 @@ def extract_archives_url_to_html(html):
 			except:
 				None
 		#DIV CLASS=POSTS
-		all_div_post = web_soup.find_all("div", class_="posts")
+		all_div_posts = web_soup.find_all("div", class_="posts")
+		for post in all_div_posts:
+			#IMG
+			try:
+				if post.find_all("img"):
+					find_imgs = post.find_all("img")
+					for img in find_imgs:
+						all_img.append(img)
+			except:
+				None
+			#IFRAME
+			try:
+				if post.iframe:
+					all_iframe.append(post.iframe)
+			except:
+				None
+		#DIV CLASS=POST
+		all_div_post = web_soup.find_all("div", class_="post")
 		for post in all_div_post:
+			#IMG
+			try:
+				if post.find_all("img"):
+					find_imgs = post.find_all("img")
+					for img in find_imgs:
+						all_img.append(img)
+			except:
+				None
+			#IFRAME
+			try:
+				if post.iframe:
+					all_iframe.append(post.iframe)
+			except:
+				None
+		#DIV CLASS=ENTRY
+		all_div_entry = web_soup.find_all("div", class_="entry")
+		for post in all_div_entry:
 			#IMG
 			try:
 				if post.find_all("img"):
