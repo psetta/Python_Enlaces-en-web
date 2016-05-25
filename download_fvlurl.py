@@ -66,6 +66,8 @@ def descargar_flvurl(url):
 			except:
 				#print "ERROR - Imposible descargar "+link
 				None
+	else:
+		print ">> Non se encontraron arquivos"
 
 if __name__ == "__main__":
 	if len(sys.argv) > 1:
