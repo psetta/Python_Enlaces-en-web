@@ -103,7 +103,7 @@ def download(archive,dir):
 		try:
 			file_dw.write(buffer)
 		except:
-			None
+			break
 		per = (download_bytes/size_bytes)*100
 		
 def download_archives(archives):
@@ -250,25 +250,38 @@ def extract_archives_url_to_html(html):
 			archives.append(src)
 			#IFRAMES
 		for src in iframes_src:
-			open_archive_url = urllib2.urlopen(src)
-			archive_type = open_archive_url.info()["content-type"]
-			if re.findall("text/html",archive_type):
-				archive_html = open_archive_url.read()
-				#SOUP
-				archive_soup = BeautifulSoup(archive_html, "html.parser")
-				#SOURCE
-				sources = archive_soup.find_all("source")
-				for source in sources:
-					archives.append(source["src"])
-				#IMG
-				imgs = archive_soup.find_all("img")
-				for img in imgs:
-					archives.append(img["src"])
-				#EXTRACT HREF FOR A_LINKS
-				a_tags = archive_soup.find_all("a")
-				for a in a_tags:
-					archives.append(a["href"])
-		return archives
+			try:
+				open_archive_url = urllib2.urlopen(src)
+			except:
+				open_archive_url = False
+			if open_archive_url:
+				archive_type = open_archive_url.info()["content-type"]
+				if re.findall("text/html",archive_type):
+					archive_html = open_archive_url.read()
+					#SOUP
+					archive_soup = BeautifulSoup(archive_html, "html.parser")
+					#SOURCE
+					sources = archive_soup.find_all("source")
+					for source in sources:
+						try:
+							archives.append(source["src"])
+						except:
+							None
+					#IMG
+					imgs = archive_soup.find_all("img")
+					for img in imgs:
+						try:
+							archives.append(img["src"])
+						except:
+							None
+					#EXTRACT HREF FOR A_LINKS
+					#a_tags = archive_soup.find_all("a")
+					#for a in a_tags:
+					#	try:
+					#		archives.append(a["href"])
+					#	except:
+					#		None
+		return list(set(archives))
 		
 def downlaod_archives_to_page(url):
 	html = read_url(url)
