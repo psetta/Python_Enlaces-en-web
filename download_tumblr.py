@@ -3,9 +3,12 @@
 import os
 import sys
 import re
+import socket
 import urllib2
 import random
 from bs4 import BeautifulSoup
+
+socket.setdefaulttimeout(10)
 
 def operative_system():
 	if os.name == "nt":
@@ -25,12 +28,14 @@ def into_url():
 			url = "http://"+url
 		return url
 	else:
-		print "Insert a Tumblr URL"
+		print "Insert a Tumblr URL as argument"
+		print "Insert '1' below to download all pages"
 		return None
 	
 def read_url(url):
 	try:
 		print "::URL: "+url
+		print " Buscando..."
 		url_open = urllib2.urlopen(url)
 	except urllib2.HTTPError, e:
 		print "Error code - %s." % e.code
@@ -47,64 +52,77 @@ def clear():
 		os.system("clear")
 		
 def download(archive,dir):
-	archive_open_url = urllib2.urlopen(archive)
-	#INFO ARCHIVE
-	archive_info = archive_open_url.info()
-	extension = ""
-	if re.findall("video",archive_info["Content-Type"]):
-		extension = "."+re.findall("video/(.+)",archive_info["Content-Type"])[0]
-	#FILE NAME
-	name_file = archive.replace(":","").replace("?","").replace("|","")
-	name_file = "".join(name_file.split("/")[-1:])
-	dir_and_file_name = dir+"/"+name_file+extension
-	file_number = 2
-	if os.path.isfile(dir_and_file_name):
-		name_file0 = name_file.split(".")[0:-1]
-		extension_file = name_file.split(".")[-1]
-		if name_file0 and extension_file:
-			total_name = dir+"/"+name_file0+"_"+str(file_number)+"."+extension_file
-		elif extension:
-			total_name = dir+"/"+name_file+"_"+str(file_number)+"."+extension
-		while os.path.isfile(total_name):
-			file_number += 1
-		dir_and_file_name = total_name
-	file_dw = file(dir_and_file_name,"wb")
-	#ARCHIVE SIZE
-	size_bytes = float(archive_info["Content-Length"])
-	size_mg = size_bytes / (1024*1024)
-	if len(str(size_mg).split(".")) > 1:
-		size_mg_show = str(size_mg).split(".")[0]+"."+str(size_mg).split(".")[1][:3]
+	#PRINT
+	clear()
+	if all_pages:
+		print "::URL: "+page_url
 	else:
-		size_mg_show = str(size_mg)
-	#BUFFER
-	bytes_pp = int(size_bytes / 40)
-	bytes_pp = min(bytes_pp, 100000)
-	bytes_pp = max(bytes_pp, 30000)
-	per = 0
-	download_bytes = 0
-	while True:
-		#CLEAR
-		clear()
-		#PRINT
-		if all_pages:
-			print "::URL: "+page_url
+		print "::URL: "+url
+	print "::TOTAL: "+str(number_archives)+"/"+str(number_archives_total)
+	print "Archive: "+archive
+	urlopen_error=0
+	try:
+		archive_open_url = urllib2.urlopen(archive, timeout=10)
+	except:
+		urlopen_error=1
+	if not urlopen_error:
+		#INFO ARCHIVE
+		archive_info = archive_open_url.info()
+		extension = ""
+		if re.findall("video",archive_info["Content-Type"]):
+			extension = "."+re.findall("video/(.+)",archive_info["Content-Type"])[0]
+		#FILE NAME
+		name_file = archive.replace(":","").replace("?","").replace("|","")
+		name_file = "".join(name_file.split("/")[-1:])
+		dir_and_file_name = dir+"/"+name_file+extension
+		file_number = 2
+		if os.path.isfile(dir_and_file_name):
+			name_file0 = name_file.split(".")[0:-1]
+			extension_file = name_file.split(".")[-1]
+			if name_file0 and extension_file:
+				total_name = dir+"/"+name_file0+"_"+str(file_number)+"."+extension_file
+			elif extension:
+				total_name = dir+"/"+name_file+"_"+str(file_number)+"."+extension
+			while os.path.isfile(total_name):
+				file_number += 1
+			dir_and_file_name = total_name
+		file_dw = file(dir_and_file_name,"wb")
+		#ARCHIVE SIZE
+		size_bytes = float(archive_info["Content-Length"])
+		size_mg = size_bytes / (1024*1024)
+		if len(str(size_mg).split(".")) > 1:
+			size_mg_show = str(size_mg).split(".")[0]+"."+str(size_mg).split(".")[1][:3]
 		else:
-			print "::URL: "+url
-		print "::TOTAL: "+str(number_archives)+"/"+str(number_archives_total)
-		print "Archive: "+archive
-		print "Content-Type: "+archive_info["Content-Type"]
-		print "Content-Length: "+size_mg_show+" MiB"
-		print "Download... "+str(per)[0:4]+"%"
+			size_mg_show = str(size_mg)
 		#BUFFER
-		buffer = archive_open_url.read(bytes_pp)
-		if not buffer:
-			break
-		download_bytes += len(buffer)
-		try:
-			file_dw.write(buffer)
-		except:
-			break
-		per = (download_bytes/size_bytes)*100
+		bytes_pp = int(size_bytes / 40)
+		bytes_pp = min(bytes_pp, 20000)
+		bytes_pp = max(bytes_pp, 5000)
+		per = 0
+		download_bytes = 0
+		while True:
+			#CLEAR
+			clear()
+			#PRINT
+			if all_pages:
+				print "::URL: "+page_url
+			else:
+				print "::URL: "+url
+			print "::TOTAL: "+str(number_archives)+"/"+str(number_archives_total)
+			print "Archive: "+archive
+			print "Content-Type: "+archive_info["Content-Type"]
+			print "Content-Length: "+size_mg_show+" MiB"
+			print "Download... "+str(per)[0:5]+"%"
+			#BUFFER
+			buffer = archive_open_url.read(bytes_pp)
+			if not buffer:
+				break
+			download_bytes += len(buffer)
+			try:
+				file_dw.write(buffer)
+			except:
+				break
+			per = (download_bytes/size_bytes)*100
 		
 def download_archives(archives):
 	global number_archives
@@ -249,6 +267,24 @@ def extract_archives_url_to_html(html):
 					all_iframe.append(post.iframe)
 			except:
 				None
+		#DIV ALL
+		if not all_img:
+			all_div = web_soup.find_all("div")
+			for post in all_div:
+				#IMG
+				try:
+					if post.find_all("img"):
+						find_imgs = post.find_all("img")
+						for img in find_imgs:
+							all_img.append(img)
+				except:
+					None
+				#IFRAME
+				try:
+					if post.iframe:
+						all_iframe.append(post.iframe)
+				except:
+					None
 		#EXTRACCION SRC FROM IMG AND IFRAMES
 		imgs_src = []
 		iframes_src = []
@@ -308,6 +344,7 @@ def downlaod_archives_to_page(url):
 def download_all_pages(url):
 	global dir_all_pages
 	global page_url
+	next = 0
 	page = 1
 	#DOWNLOAD LOOP
 	#CREATE DIR
@@ -334,16 +371,17 @@ def download_all_pages(url):
 		if len(archives) > 0:
 			download_archives(archives)
 			page += 1
+			next = 0
 			clear()
 		else:
-			#NEXT_PAGE?
-			next = False
+			##NEXT_PAGE
 			soap_html = BeautifulSoup(html, "html.parser")
 			all_a_next = soap_html.find_all("a", class_="next")
-			if not all_a_next:
+			if not all_a_next or next >= 10:
 				break
 			else:
 				clear()
+				next += 1
 				page += 1
 
 ###### MAIN
@@ -361,7 +399,7 @@ def main(main_url=False,main_all_pages=False):
 		all_pages = main_all_pages
 	else:
 		if len(sys.argv) > 2:
-			all_pages = True if sys.argv[2] in ["1","True"] else False
+			all_pages = True if sys.argv[2] in ["1","True","all"] else False
 		else:
 			all_pages = False
 	#LAUNCH
