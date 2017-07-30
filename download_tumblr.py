@@ -24,7 +24,7 @@ def into_url():
 		if not re.findall("tumblr.com",url):
 			print "Insert a Tumblr URL"
 			return None
-		if not re.findall("^http://",url):
+		if not re.findall("^https?://",url):
 			url = "http://"+url
 		return url
 	else:
@@ -85,6 +85,10 @@ def download(archive,dir):
 				total_name = dir+"/"+name_file+"_"+str(file_number)+"."+extension
 			while os.path.isfile(total_name):
 				file_number += 1
+				if name_file0 and extension_file:
+					total_name = dir+"/"+name_file0+"_"+str(file_number)+"."+extension_file
+				elif extension:
+					total_name = dir+"/"+name_file+"_"+str(file_number)+"."+extension
 			dir_and_file_name = total_name
 		file_dw = file(dir_and_file_name,"wb")
 		#ARCHIVE SIZE
@@ -96,8 +100,8 @@ def download(archive,dir):
 			size_mg_show = str(size_mg)
 		#BUFFER
 		bytes_pp = int(size_bytes / 40)
-		bytes_pp = min(bytes_pp, 20000)
-		bytes_pp = max(bytes_pp, 5000)
+		bytes_pp = min(bytes_pp, 80000)
+		bytes_pp = max(bytes_pp, 10000)
 		per = 0
 		download_bytes = 0
 		while True:
