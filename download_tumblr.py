@@ -128,21 +128,10 @@ def download(archive,dir):
 				break
 			per = (download_bytes/size_bytes)*100
 		
-def download_archives(archives):
+def download_archives(archives, dir):
 	global number_archives
 	global number_archives_total
 	if len(archives) > 0:
-		dir_name = "_".join(url.split("/")[2:])
-		#DIR NAME
-		if all_pages:
-			dir_name = dir_all_pages
-		else:
-			dir_number = 2
-			if os.path.isdir(dir_name):
-				while os.path.isdir(dir_name+"_"+str(dir_number)):
-					dir_number += 1
-				dir_name = dir_name+"_"+str(dir_number)
-			os.mkdir(dir_name)
 		#DOWNLAOD ARCHIVES
 		number_archives_total = len(archives)
 		number_archives = 1
@@ -155,6 +144,11 @@ def download_archives(archives):
 	else:
 		print "\t- No archives"
 		
+def download_archives_to_page(url, dir):
+	html = read_url(url)
+	archives = extract_archives_url_to_html(html)
+	download_archives(archives, dir_name)
+		
 def extract_archives_url_to_html(html):
 	global number_archives_total
 	global number_archives
@@ -162,6 +156,7 @@ def extract_archives_url_to_html(html):
 		#SOUP
 		web_soup = BeautifulSoup(html, "html.parser")
 		all_img = []
+		all_img_photoset = []
 		all_iframe = []
 		#ARTICLE
 		all_articles = web_soup.find_all("article")
@@ -271,6 +266,31 @@ def extract_archives_url_to_html(html):
 					all_iframe.append(post.iframe)
 			except:
 				None
+		########PHOTOSET########
+		#DIV CLASS=HTML_PHOTOSET
+		all_div_photoset = web_soup.find_all("div", class_="html_photoset")
+		for post in all_div_photoset:
+			try:
+				if post.find_all("iframe"):
+					#SRC
+					photoset_url = post.find("iframe")["src"]
+					sort_url = url.split("/")[:3]
+					sort_url = "/".join(sort_url)
+					photoset_complete_url = sort_url+photoset_url
+					download_archives_to_page(photoset_complete_url, dir_name)
+			except:
+				None
+		#DIV CLASS=PHOTOSET
+		all_div_photoset_2 = web_soup.find_all("div", class_="photoset")
+		for post in all_div_photoset_2:
+			try:
+				if post.find_all("a", href=True):
+					a_all = post.find_all("a")
+					for a in a_all:
+						all_img_photoset.append(a["href"])
+			except:
+				None
+		################
 		#DIV ALL
 		if not all_img:
 			all_div = web_soup.find_all("div")
@@ -278,9 +298,10 @@ def extract_archives_url_to_html(html):
 				#IMG
 				try:
 					if post.find_all("img"):
-						find_imgs = post.find_all("img")
-						for img in find_imgs:
-							all_img.append(img)
+						if not post.find_all("a", class_="user-avatar"):
+							find_imgs = post.find_all("img")
+							for img in find_imgs:
+								all_img.append(img)
 				except:
 					None
 				#IFRAME
@@ -296,10 +317,13 @@ def extract_archives_url_to_html(html):
 		for img in all_img:
 			if img["src"]:
 				imgs_src.append(img["src"])
+		#all_img_photoset
+		imgs_src += all_img_photoset
 		#SRC IN IFRAME
 		for iframe in all_iframe:
 			if iframe["src"]:
 				iframes_src.append(iframe["src"])
+		
 		#ARCHIVES
 		archives = []
 			#IMGS
@@ -339,26 +363,10 @@ def extract_archives_url_to_html(html):
 					#	except:
 					#		None
 		return list(set(archives))
-		
-def downlaod_archives_to_page(url):
-	html = read_url(url)
-	archives = extract_archives_url_to_html(html)
-	download_archives(archives)
 	
-def download_all_pages(url):
-	global dir_all_pages
+def download_all_pages(url, dir):
 	global page_url
-	next = 0
-	page = 1
-	#DOWNLOAD LOOP
-	#CREATE DIR
-	dir_number = 2
-	dir_all_pages ="_".join(url.split("/")[2:])
-	if os.path.isdir(dir_all_pages):
-		while os.path.isdir(dir_all_pages+"_"+str(dir_number)):
-			dir_number += 1
-		dir_all_pages = dir_all_pages+"_"+str(dir_number)
-	os.mkdir(dir_all_pages)
+	page=1
 	#LOOP
 	while True:
 		if re.findall("page/$",url):
@@ -373,7 +381,7 @@ def download_all_pages(url):
 		html = read_url(page_url)
 		archives = extract_archives_url_to_html(html)
 		if len(archives) > 0:
-			download_archives(archives)
+			download_archives(archives, dir_name)
 			page += 1
 			next = 0
 			clear()
@@ -392,12 +400,14 @@ def download_all_pages(url):
 def main(main_url=False,main_all_pages=False):
 	clear()
 	global url
+	global dir_name
 	global all_pages
 	#URL
 	if main_url:
 		url = main_url
 	else:
 		url = into_url()
+	sort_url = url.split("/")[2:]
 	#ALL_PAGES
 	if main_all_pages:
 		all_pages = main_all_pages
@@ -408,10 +418,22 @@ def main(main_url=False,main_all_pages=False):
 			all_pages = False
 	#LAUNCH
 	if url:
+		#DIR NAME
+		dir_name = "_".join(url.split("/")[2:])
+		dir_number = 2
 		if all_pages:
-			download_all_pages(url)
+			dir_name = dir_name+"_all"
+		if os.path.isdir(dir_name):
+			while os.path.isdir(dir_name+"_"+str(dir_number)):
+				dir_number += 1
+			dir_name = dir_name+"_"+str(dir_number)
+		os.mkdir(dir_name)
+		##DOWNLOAD##
+		if all_pages:
+			download_all_pages(url,dir_name)
 		else:
-			downlaod_archives_to_page(url)
+			download_archives_to_page(url,dir_name)
+		print " DESCARGA COMPLETADA!"
 
 if __name__ == "__main__":			
 	main()
