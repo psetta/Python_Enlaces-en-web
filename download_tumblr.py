@@ -23,14 +23,14 @@ def into_url():
 		url = sys.argv[1]
 		if not re.findall("tumblr.com",url):
 			print "Insert a Tumblr URL"
-			return None
+			sys.exit(0)
 		if not re.findall("^https?://",url):
 			url = "http://"+url
 		return url
 	else:
 		print "Insert a Tumblr URL as argument"
 		print "Insert '1' below to download all pages"
-		return None
+		sys.exit(0)
 	
 def read_url(url):
 	try:
@@ -217,6 +217,40 @@ def extract_archives_url_to_html(html):
 				None
 		#DIV CLASS=POST
 		all_div_post = web_soup.find_all("div", class_="post")
+		for post in all_div_post:
+			#IMG
+			try:
+				if post.find_all("img"):
+					find_imgs = post.find_all("img")
+					for img in find_imgs:
+						all_img.append(img)
+			except:
+				None
+			#IFRAME
+			try:
+				if post.iframe:
+					all_iframe.append(post.iframe)
+			except:
+				None
+		#DIV CLASS=POST-PANEL
+		all_div_post = web_soup.find_all("div", class_="post-panel")
+		for post in all_div_post:
+			#IMG
+			try:
+				if post.find_all("img"):
+					find_imgs = post.find_all("img")
+					for img in find_imgs:
+						all_img.append(img)
+			except:
+				None
+			#IFRAME
+			try:
+				if post.iframe:
+					all_iframe.append(post.iframe)
+			except:
+				None
+		#DIV CLASS=MEDIA
+		all_div_post = web_soup.find_all("div", class_="media")
 		for post in all_div_post:
 			#IMG
 			try:
